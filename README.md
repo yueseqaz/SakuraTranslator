@@ -129,4 +129,4 @@ git push
 
 ## License
 
-暂未添加开源许可证。若需公开复用，请先联系作者或自行补充 License 文件。
+[MIT](./LICENSE) © 2026 yueseqaz
