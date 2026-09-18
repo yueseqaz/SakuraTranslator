@@ -184,25 +184,14 @@ final class AppStore: ObservableObject {
         isSwitchingTab = false
     }
 
-    /// Hotkey / selection / Services entry → compact quick dialog.
-    func ingestHotkeyText(_ text: String, autoStart: Bool) {
+    /// Hotkey: blank quick dialog only — user pastes or types.
+    func openBlankQuickDialog() {
         surface = .hotkey
-        errorMessage = nil
-        quickSource = text
+        quickSource = ""
         quickResult = ""
         quickError = nil
-        if autoStart {
-            runQuickTranslate()
-        }
-    }
-
-    func ingestServicesText(_ text: String) {
-        surface = .hotkey
-        quickSource = text
-        quickResult = ""
-        quickError = nil
-        runQuickTranslate()
-        QuickPanelController.shared.showQuick()
+        quickBusy = false
+        quickCopied = false
     }
 
     func quickPasteClipboard() {

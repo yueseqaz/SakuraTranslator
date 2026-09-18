@@ -445,29 +445,18 @@ struct SettingsPageView: View {
                         Image(systemName: "keyboard")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.secondary)
-                        Text("全局快捷键")
+                        Text("快速翻译框")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    Text("⌥⌘T — 剪贴板 → 快速翻译框（点「翻译」即可）")
+                    Text("⌥⌘T 或 ⌥⌘S — 弹出空白输入框，自行粘贴或输入后点「翻译」")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                    Text("⌥⌘S — 选中文本 → 快速翻译框并自动翻译")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    Text("右键菜单：选中文字 → 服务 →「用 Sakura Translator 翻译」")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    Text("划词/服务需在「系统设置 → 隐私与安全性 → 辅助功能」中允许本应用。")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("窗口无系统关闭/最小化按钮，框内右上角 ✕ 关闭。")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("打开辅助功能设置") {
-                        HotKeyManager.openAccessibilitySettings()
-                    }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 11))
-                    .foregroundStyle(GlassPalette.accent)
                 }
             }
         }

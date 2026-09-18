@@ -102,7 +102,7 @@ struct QuickTranslateView: View {
                                 .padding(.horizontal, 10)
                                 .padding(.bottom, 8)
                         } else if store.quickResult.isEmpty {
-                            Text("点击「翻译」后显示结果")
+                            Text("粘贴或输入文字后，点右下角「翻译」")
                                 .font(.system(size: 12))
                                 .foregroundStyle(.tertiary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

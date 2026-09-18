@@ -2,9 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
-/// Global hotkeys:
-///  - ⌥⌘T : clipboard → translate panel
-///  - ⌥⌘S : selected text (Accessibility) → translate panel + auto start
+/// Hotkeys open a blank quick-translate dialog (user types/pastes).
 @MainActor
 final class HotKeyManager {
     static let shared = HotKeyManager()
@@ -52,9 +50,8 @@ final class HotKeyManager {
             &handlerRef
         )
 
-        // ⌥⌘T — clipboard
         var ref1: EventHotKeyRef?
-        let id1 = EventHotKeyID(signature: OSType(0x534B5452), id: 1) // SKTR
+        let id1 = EventHotKeyID(signature: OSType(0x534B5452), id: 1)
         RegisterEventHotKey(
             UInt32(kVK_ANSI_T),
             UInt32(optionKey | cmdKey),
@@ -65,7 +62,6 @@ final class HotKeyManager {
         )
         if let ref1 { hotKeyRefs.append(ref1) }
 
-        // ⌥⌘S — selection
         var ref2: EventHotKeyRef?
         let id2 = EventHotKeyID(signature: OSType(0x534B5452), id: 2)
         RegisterEventHotKey(
@@ -80,86 +76,18 @@ final class HotKeyManager {
     }
 
     private func handle(id: Int) {
-        switch id {
-        case 1:
-            handleClipboard()
-        case 2:
-            handleSelection()
-        default:
-            break
-        }
-    }
-
-    private func handleClipboard() {
-        let store = AppStore.shared
-        var text = NSPasteboard.general.string(forType: .string) ?? ""
-        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if text.isEmpty {
-            store.ingestHotkeyText("", autoStart: false)
-            store.quickError = "剪贴板没有文本"
-        } else {
-            store.ingestHotkeyText(text, autoStart: false)
-        }
+        AppStore.shared.openBlankQuickDialog()
         QuickPanelController.shared.showQuick()
-    }
-
-    private func handleSelection() {
-        let store = AppStore.shared
-        let selected = Self.frontmostSelectedText()?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if let selected, !selected.isEmpty {
-            store.ingestHotkeyText(selected, autoStart: true)
-        } else {
-            let clip = (NSPasteboard.general.string(forType: .string) ?? "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if clip.isEmpty {
-                store.ingestHotkeyText("", autoStart: false)
-                store.quickError = "未读到选中文本。请在系统设置授予辅助功能权限，或先选中文字"
-            } else {
-                store.ingestHotkeyText(clip, autoStart: true)
-            }
-        }
-        QuickPanelController.shared.showQuick()
-    }
-
-    /// Best-effort read of selected text via Accessibility API.
-    static func frontmostSelectedText() -> String? {
-        let systemWide = AXUIElementCreateSystemWide()
-        var focusedAppRef: CFTypeRef?
-        let appStatus = AXUIElementCopyAttributeValue(
-            systemWide,
-            kAXFocusedApplicationAttribute as CFString,
-            &focusedAppRef
-        )
-        guard appStatus == .success, let focusedAppRef else { return nil }
-        let appElement = focusedAppRef as! AXUIElement
-
-        var focusedUIRef: CFTypeRef?
-        let uiStatus = AXUIElementCopyAttributeValue(
-            appElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedUIRef
-        )
-        guard uiStatus == .success, let focusedUIRef else { return nil }
-        let uiElement = focusedUIRef as! AXUIElement
-
-        var selectedRef: CFTypeRef?
-        let selStatus = AXUIElementCopyAttributeValue(
-            uiElement,
-            kAXSelectedTextAttribute as CFString,
-            &selectedRef
-        )
-        guard selStatus == .success, let selectedRef else { return nil }
-        return selectedRef as? String
     }
 
     static func openAccessibilitySettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-        NSWorkspace.shared.open(url)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }
 
-/// Floating compact dialog used by hotkeys and Services.
+/// Floating compact dialog — borderless, no traffic-light buttons.
 @MainActor
 final class QuickPanelController {
     static let shared = QuickPanelController()
@@ -173,11 +101,10 @@ final class QuickPanelController {
             let size = NSSize(width: 360, height: 420)
             let panel = NSPanel(
                 contentRect: NSRect(origin: .zero, size: size),
-                styleMask: [.titled, .closable, .fullSizeContentView, .utilityWindow],
+                styleMask: [.borderless, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
-            panel.title = "快速翻译"
             panel.titleVisibility = .hidden
             panel.titlebarAppearsTransparent = true
             panel.isFloatingPanel = true
@@ -189,6 +116,9 @@ final class QuickPanelController {
             panel.isOpaque = false
             panel.hasShadow = true
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            panel.standardWindowButton(.closeButton)?.isHidden = true
+            panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            panel.standardWindowButton(.zoomButton)?.isHidden = true
 
             let host = NSHostingView(
                 rootView: QuickTranslateView(store: .shared, prefs: AppStore.shared.preferences)
@@ -205,15 +135,16 @@ final class QuickPanelController {
         AppStore.shared.surface = .hotkey
     }
 
-    func show() { showQuick() }
-
     private func position(_ panel: NSPanel) {
         guard let screen = NSScreen.main else { return }
         let visible = screen.visibleFrame
         let size = panel.frame.size
-        let x = visible.midX - size.width / 2
-        let y = visible.maxY - size.height - 72
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        panel.setFrameOrigin(
+            NSPoint(
+                x: visible.midX - size.width / 2,
+                y: visible.maxY - size.height - 72
+            )
+        )
     }
 
     func hide() {
