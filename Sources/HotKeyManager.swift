@@ -2,14 +2,17 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
-/// Hotkeys open a blank quick-translate dialog (user types/pastes).
+/// Global gesture: double-tap Command (⌘) opens the blank quick-translate dialog.
 @MainActor
 final class HotKeyManager {
     static let shared = HotKeyManager()
 
-    private var hotKeyRefs: [EventHotKeyRef] = []
-    private var handlerRef: EventHandlerRef?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
     private var installed = false
+    private var lastCommandDown: TimeInterval = 0
+    private var commandIsDown = false
+    private let doubleTapWindow: TimeInterval = 0.35
 
     private init() {}
 
@@ -17,65 +20,46 @@ final class HotKeyManager {
         guard !installed else { return }
         installed = true
 
-        var eventType = EventTypeSpec(
-            eventClass: OSType(kEventClassKeyboard),
-            eventKind: UInt32(kEventHotKeyPressed)
-        )
-
-        let callback: EventHandlerUPP = { _, event, _ -> OSStatus in
-            guard let event else { return noErr }
-            var hkID = EventHotKeyID()
-            let status = GetEventParameter(
-                event,
-                EventParamName(kEventParamDirectObject),
-                EventParamType(typeEventHotKeyID),
-                nil,
-                MemoryLayout<EventHotKeyID>.size,
-                nil,
-                &hkID
-            )
-            guard status == noErr else { return noErr }
+        let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             Task { @MainActor in
-                HotKeyManager.shared.handle(id: Int(hkID.id))
+                self?.handleFlagsChanged(event)
             }
-            return noErr
         }
+        globalMonitor = global
 
-        InstallEventHandler(
-            GetApplicationEventTarget(),
-            callback,
-            1,
-            &eventType,
-            nil,
-            &handlerRef
-        )
-
-        var ref1: EventHotKeyRef?
-        let id1 = EventHotKeyID(signature: OSType(0x534B5452), id: 1)
-        RegisterEventHotKey(
-            UInt32(kVK_ANSI_T),
-            UInt32(optionKey | cmdKey),
-            id1,
-            GetApplicationEventTarget(),
-            0,
-            &ref1
-        )
-        if let ref1 { hotKeyRefs.append(ref1) }
-
-        var ref2: EventHotKeyRef?
-        let id2 = EventHotKeyID(signature: OSType(0x534B5452), id: 2)
-        RegisterEventHotKey(
-            UInt32(kVK_ANSI_S),
-            UInt32(optionKey | cmdKey),
-            id2,
-            GetApplicationEventTarget(),
-            0,
-            &ref2
-        )
-        if let ref2 { hotKeyRefs.append(ref2) }
+        let local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            Task { @MainActor in
+                self?.handleFlagsChanged(event)
+            }
+            return event
+        }
+        localMonitor = local
     }
 
-    private func handle(id: Int) {
+    /// keyCode 55 = left ⌘, 54 = right ⌘
+    private func handleFlagsChanged(_ event: NSEvent) {
+        let code = Int(event.keyCode)
+        guard code == 55 || code == 54 else { return }
+
+        let commandDown = event.modifierFlags.contains(.command)
+        let now = ProcessInfo.processInfo.systemUptime
+
+        if commandDown && !commandIsDown {
+            // Key-down edge
+            if now - lastCommandDown <= doubleTapWindow {
+                lastCommandDown = 0
+                commandIsDown = true
+                openQuickDialog()
+                return
+            }
+            lastCommandDown = now
+            commandIsDown = true
+        } else if !commandDown {
+            commandIsDown = false
+        }
+    }
+
+    private func openQuickDialog() {
         AppStore.shared.openBlankQuickDialog()
         QuickPanelController.shared.showQuick()
     }
@@ -140,7 +124,6 @@ final class QuickPanelController {
             position(panel)
             NSApp.activate(ignoringOtherApps: true)
             panel.makeKeyAndOrderFront(nil)
-            // Nudge first-responder into the text field
             DispatchQueue.main.async {
                 panel.makeFirstResponder(panel.contentView)
             }

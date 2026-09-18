@@ -185,11 +185,10 @@ struct ContentView: View {
             Spacer(minLength: 4)
 
             if store.activeTab == .translate {
-                Text("⌥⌘T / ⌥⌘S")
+                Text("双击 ⌘")
                     .font(.system(size: 10, design: .rounded))
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
             }
         }
         .padding(.vertical, 2)
