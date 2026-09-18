@@ -171,18 +171,7 @@ struct QuickTranslateView: View {
 
     private var footer: some View {
         HStack(spacing: 8) {
-            Text(store.preferences.currentIsReady
-                 ? "\(store.provider.shortName) · \(store.preferences.model(for: store.provider))"
-                 : "请先在菜单栏设置中配置 API")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
-
             Spacer()
-
-            Button("⌘↩ 翻译") {}
-                .opacity(0)
-                .frame(width: 0, height: 0)
 
             Button {
                 store.runQuickTranslate()
