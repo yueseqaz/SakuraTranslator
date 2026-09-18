@@ -367,27 +367,10 @@ struct ContentView: View {
         }
     }
 
-    // MARK: Footer
+    // MARK: Footer — model only in the top-right badge
 
     private var translateFooter: some View {
         HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                if let usage = store.lastUsage {
-                    Text("入 \(usage.promptTokens) · 出 \(usage.completionTokens) · 共 \(usage.totalTokens)")
-                        .font(.system(size: 10, design: .rounded))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                } else if !store.preferences.currentIsReady {
-                    Text(store.provider.isCustom ? "请配置 Base URL / Key / 模型" : "请打开设置配置 Key")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                } else {
-                    Text(store.autoTranslate ? "自动翻译 · 停止输入后触发" : "手动模式 · ⌘↩ 或点翻译")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
             Spacer()
 
             Button {
