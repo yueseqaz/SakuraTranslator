@@ -103,16 +103,17 @@ struct ContentView: View {
             }
 
             Button {
-                NSApp.terminate(nil)
+                // Close panel only — app stays in menu bar
+                store.closePanels()
             } label: {
-                Image(systemName: "power")
-                    .font(.system(size: 11, weight: .medium))
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 26, height: 26)
                     .background(Circle().fill(GlassPalette.chipFill))
             }
             .buttonStyle(.plain)
-            .help("退出")
+            .help("关闭面板（应用继续在菜单栏运行）")
         }
     }
 

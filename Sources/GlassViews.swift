@@ -412,6 +412,34 @@ struct SettingsPageView: View {
                 Divider()
                     .opacity(0.35)
 
+                Toggle(isOn: Binding(
+                    get: { store.launchAtLogin },
+                    set: { store.setLaunchAtLogin($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("开机自启动")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("当前：\(LaunchAtLogin.statusLabel)。开启后登录即自动运行菜单栏图标")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+
+                Button("退出应用（完全退出）") {
+                    store.quitApp()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.red.opacity(0.85))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(Color.red.opacity(0.08)))
+
+                Divider()
+                    .opacity(0.35)
+
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         Image(systemName: "keyboard")
@@ -421,13 +449,16 @@ struct SettingsPageView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    Text("⌥⌘T — 剪贴板文本 → 弹出面板并填入")
+                    Text("⌥⌘T — 剪贴板 → 快速翻译框（点「翻译」即可）")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                    Text("⌥⌘S — 选中文本 → 弹出面板并翻译")
+                    Text("⌥⌘S — 选中文本 → 快速翻译框并自动翻译")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                    Text("划词需在「系统设置 → 隐私与安全性 → 辅助功能」中允许 Sakura Translator。")
+                    Text("右键菜单：选中文字 → 服务 →「用 Sakura Translator 翻译」")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text("划词/服务需在「系统设置 → 隐私与安全性 → 辅助功能」中允许本应用。")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)

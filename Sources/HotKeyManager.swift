@@ -94,15 +94,13 @@ final class HotKeyManager {
         let store = AppStore.shared
         var text = NSPasteboard.general.string(forType: .string) ?? ""
         text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else {
-            store.surface = .hotkey
-            store.activeTab = .translate
-            store.errorMessage = "剪贴板没有文本"
-            QuickPanelController.shared.show()
-            return
+        if text.isEmpty {
+            store.ingestHotkeyText("", autoStart: false)
+            store.quickError = "剪贴板没有文本"
+        } else {
+            store.ingestHotkeyText(text, autoStart: false)
         }
-        store.ingestHotkeyText(text, autoStart: store.preferences.autoTranslate)
-        QuickPanelController.shared.show()
+        QuickPanelController.shared.showQuick()
     }
 
     private func handleSelection() {
@@ -112,19 +110,16 @@ final class HotKeyManager {
         if let selected, !selected.isEmpty {
             store.ingestHotkeyText(selected, autoStart: true)
         } else {
-            // Fallback: clipboard, still try to open panel
             let clip = (NSPasteboard.general.string(forType: .string) ?? "")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if clip.isEmpty {
-                store.surface = .hotkey
-                store.activeTab = .translate
-                store.errorMessage = "未读到选中文本，请在系统设置授予「辅助功能」权限，或先选中文字"
-                QuickPanelController.shared.show()
+                store.ingestHotkeyText("", autoStart: false)
+                store.quickError = "未读到选中文本。请在系统设置授予辅助功能权限，或先选中文字"
             } else {
                 store.ingestHotkeyText(clip, autoStart: true)
             }
         }
-        QuickPanelController.shared.show()
+        QuickPanelController.shared.showQuick()
     }
 
     /// Best-effort read of selected text via Accessibility API.
@@ -164,25 +159,25 @@ final class HotKeyManager {
     }
 }
 
-/// Floating panel used by global hotkeys (same UI as menu bar).
+/// Floating compact dialog used by hotkeys and Services.
 @MainActor
 final class QuickPanelController {
     static let shared = QuickPanelController()
 
     private var panel: NSPanel?
 
-    func show() {
+    func showQuick() {
         NSApp.activate(ignoringOtherApps: true)
 
         if panel == nil {
-            let size = NSSize(width: 400, height: 560)
+            let size = NSSize(width: 360, height: 420)
             let panel = NSPanel(
                 contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.titled, .closable, .fullSizeContentView, .utilityWindow],
                 backing: .buffered,
                 defer: false
             )
-            panel.title = "Sakura Translator"
+            panel.title = "快速翻译"
             panel.titleVisibility = .hidden
             panel.titlebarAppearsTransparent = true
             panel.isFloatingPanel = true
@@ -195,30 +190,34 @@ final class QuickPanelController {
             panel.hasShadow = true
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-            let host = NSHostingView(rootView: ContentView(store: .shared))
+            let host = NSHostingView(
+                rootView: QuickTranslateView(store: .shared, prefs: AppStore.shared.preferences)
+            )
             host.frame = NSRect(origin: .zero, size: size)
             panel.contentView = host
             self.panel = panel
-            position(panel)
-        } else if let panel {
-            position(panel)
         }
 
         if let panel {
+            position(panel)
             panel.makeKeyAndOrderFront(nil)
         }
+        AppStore.shared.surface = .hotkey
     }
+
+    func show() { showQuick() }
 
     private func position(_ panel: NSPanel) {
         guard let screen = NSScreen.main else { return }
         let visible = screen.visibleFrame
         let size = panel.frame.size
         let x = visible.midX - size.width / 2
-        let y = visible.maxY - size.height - 48
+        let y = visible.maxY - size.height - 72
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     func hide() {
         panel?.orderOut(nil)
+        AppStore.shared.surface = .menuBar
     }
 }

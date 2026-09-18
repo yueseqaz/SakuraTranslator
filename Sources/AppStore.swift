@@ -26,6 +26,15 @@ final class AppStore: ObservableObject {
     @Published var returnTab: MainTab = .translate
     @Published var lastUsage: TokenUsage?
     @Published var surface: AppSurface = .menuBar
+    @Published var launchAtLogin: Bool = LaunchAtLogin.isEnabled
+
+    // Quick translate dialog (hotkey / Services)
+    @Published var quickSource: String = ""
+    @Published var quickResult: String = ""
+    @Published var quickError: String?
+    @Published var quickBusy: Bool = false
+    @Published var quickCopied: Bool = false
+    private var quickTask: Task<Void, Never>?
 
     // Settings drafts — one published struct so tab switch is a single update
     struct SettingsDraft: Equatable {
@@ -175,20 +184,155 @@ final class AppStore: ObservableObject {
         isSwitchingTab = false
     }
 
-    /// Hotkey / selection entry.
+    /// Hotkey / selection / Services entry → compact quick dialog.
     func ingestHotkeyText(_ text: String, autoStart: Bool) {
         surface = .hotkey
-        activeTab = .translate
         errorMessage = nil
-        sourceText = text
-        resultText = ""
-        lastUsage = nil
+        quickSource = text
+        quickResult = ""
+        quickError = nil
         if autoStart {
-            // Cancel pending debounce from $sourceText and translate now
-            autoTask?.cancel()
-            translate()
+            runQuickTranslate()
+        }
+    }
+
+    func ingestServicesText(_ text: String) {
+        surface = .hotkey
+        quickSource = text
+        quickResult = ""
+        quickError = nil
+        runQuickTranslate()
+        QuickPanelController.shared.showQuick()
+    }
+
+    func quickPasteClipboard() {
+        if let str = NSPasteboard.general.string(forType: .string), !str.isEmpty {
+            quickSource = str
+            quickError = nil
+        }
+    }
+
+    func copyQuickResult() {
+        guard !quickResult.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(quickResult, forType: .string)
+        quickCopied = true
+        Task {
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            if self.quickCopied { self.quickCopied = false }
+        }
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        let ok = LaunchAtLogin.setEnabled(enabled)
+        launchAtLogin = LaunchAtLogin.isEnabled
+        if !ok {
+            statusNote = "设置开机自启动失败：\(LaunchAtLogin.statusLabel)"
         } else {
-            statusNote = "已从剪贴板填入"
+            statusNote = enabled ? "已开启开机自启动" : "已关闭开机自启动"
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            if self.statusNote?.contains("自启动") == true { self.statusNote = nil }
+        }
+    }
+
+    /// Close panel UI — keep app alive in menu bar (do not quit).
+    func closePanels() {
+        QuickPanelController.shared.hide()
+        if surface == .hotkey {
+            return
+        }
+        // Try to dismiss MenuBarExtra window without terminating
+        for window in NSApp.windows {
+            let name = String(describing: type(of: window))
+            if name.contains("MenuBarExtra") || name.contains("StatusBar") {
+                window.orderOut(nil)
+            }
+        }
+    }
+
+    func quitApp() {
+        NSApp.terminate(nil)
+    }
+
+    /// Compact dialog translate (does not switch main tab).
+    func runQuickTranslate() {
+        let trimmed = quickSource.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            quickError = "请输入要翻译的内容"
+            return
+        }
+
+        let provider = preferences.provider
+        let apiKey = preferences.apiKey(for: provider)
+        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            quickError = "未配置 \(provider.displayName) API Key，请打开菜单栏设置"
+            return
+        }
+
+        let model = preferences.model(for: provider)
+        let baseURL = preferences.baseURL(for: provider)
+        if provider.isCustom {
+            if baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                quickError = "自定义引擎需配置 Base URL 与模型"
+                return
+            }
+        }
+
+        let language = preferences.languageTarget
+        let source = trimmed
+
+        quickTask?.cancel()
+        quickBusy = true
+        quickError = nil
+        quickResult = ""
+
+        quickTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let result = try await TranslationService.shared.translate(
+                    text: source,
+                    language: language,
+                    provider: provider,
+                    apiKey: apiKey,
+                    model: model,
+                    baseURL: baseURL,
+                    onDelta: { [weak self] piece in
+                        Task { @MainActor in
+                            guard let self else { return }
+                            self.quickResult += piece
+                        }
+                    }
+                )
+                self.quickResult = result.text
+                if let usage = result.usage {
+                    self.usage.record(provider: provider, model: model, usage: usage)
+                }
+                self.history.append(
+                    source: source,
+                    result: result.text,
+                    provider: provider,
+                    model: model,
+                    language: language
+                )
+                if self.preferences.autoCopyResult {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(result.text, forType: .string)
+                    self.quickCopied = true
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 1_200_000_000)
+                        if self.quickCopied { self.quickCopied = false }
+                    }
+                }
+                self.quickBusy = false
+            } catch is CancellationError {
+                self.quickBusy = false
+            } catch {
+                self.quickBusy = false
+                self.quickError = error.localizedDescription
+            }
         }
     }
 
