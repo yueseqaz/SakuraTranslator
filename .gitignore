@@ -1,0 +1,17 @@
+# Build products
+dist/
+*.app
+
+# macOS
+.DS_Store
+
+# Xcode / SwiftPM
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj
+xcuserdata/
+
+# Local secrets / env
+.env
+*.pem
