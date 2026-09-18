@@ -49,7 +49,7 @@ final class HotKeyManager {
             if now - lastCommandDown <= doubleTapWindow {
                 lastCommandDown = 0
                 commandIsDown = true
-                openQuickDialog()
+                toggleQuickDialog()
                 return
             }
             lastCommandDown = now
@@ -59,9 +59,14 @@ final class HotKeyManager {
         }
     }
 
-    private func openQuickDialog() {
-        AppStore.shared.openBlankQuickDialog()
-        QuickPanelController.shared.showQuick()
+    /// Double-tap ⌘: open if closed, close if open.
+    private func toggleQuickDialog() {
+        if QuickPanelController.shared.isVisible {
+            QuickPanelController.shared.hide()
+        } else {
+            AppStore.shared.openBlankQuickDialog()
+            QuickPanelController.shared.showQuick()
+        }
     }
 
     static func openAccessibilitySettings() {
@@ -83,6 +88,10 @@ final class QuickPanelController {
     static let shared = QuickPanelController()
 
     private var panel: QuickKeyPanel?
+
+    var isVisible: Bool {
+        panel?.isVisible == true
+    }
 
     func showQuick() {
         NSApp.activate(ignoringOtherApps: true)

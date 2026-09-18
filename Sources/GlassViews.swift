@@ -449,7 +449,7 @@ struct SettingsPageView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    Text("双击 ⌘ — 弹出空白输入框，自行粘贴或输入后点「翻译」")
+                    Text("双击 ⌘ — 打开快速翻译框；再双击 ⌘ 关闭")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
