@@ -1,8 +1,11 @@
 import AppKit
-import Carbon.HIToolbox
 import SwiftUI
 
-/// Global gesture: double-tap Command (⌘) opens the blank quick-translate dialog.
+extension Notification.Name {
+    static let sakuraFocusQuickInput = Notification.Name("SakuraTranslator.FocusQuickInput")
+}
+
+/// Global gesture: double-tap Command (⌘) toggles the blank quick-translate dialog.
 @MainActor
 final class HotKeyManager {
     static let shared = HotKeyManager()
@@ -45,7 +48,6 @@ final class HotKeyManager {
         let now = ProcessInfo.processInfo.systemUptime
 
         if commandDown && !commandIsDown {
-            // Key-down edge
             if now - lastCommandDown <= doubleTapWindow {
                 lastCommandDown = 0
                 commandIsDown = true
@@ -76,13 +78,23 @@ final class HotKeyManager {
     }
 }
 
-/// Borderless floating panel that can still become key (so TextEditor accepts typing).
+/// Borderless floating panel that can become key and signal input focus.
 final class QuickKeyPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    override func becomeKey() {
+        super.becomeKey()
+        // After the window is key, ask SwiftUI to focus the TextEditor
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .sakuraFocusQuickInput, object: nil)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            NotificationCenter.default.post(name: .sakuraFocusQuickInput, object: nil)
+        }
+    }
 }
 
-/// Floating compact dialog — borderless, no traffic-light buttons.
 @MainActor
 final class QuickPanelController {
     static let shared = QuickPanelController()
@@ -133,8 +145,9 @@ final class QuickPanelController {
             position(panel)
             NSApp.activate(ignoringOtherApps: true)
             panel.makeKeyAndOrderFront(nil)
+            // Extra nudge after the run loop settles
             DispatchQueue.main.async {
-                panel.makeFirstResponder(panel.contentView)
+                NotificationCenter.default.post(name: .sakuraFocusQuickInput, object: nil)
             }
         }
         AppStore.shared.surface = .hotkey

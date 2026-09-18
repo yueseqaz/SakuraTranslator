@@ -138,8 +138,10 @@ struct QuickTranslateView: View {
         .onExitCommand {
             QuickPanelController.shared.hide()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .sakuraFocusQuickInput)) { _ in
+            sourceFocused = true
+        }
         .onAppear {
-            // Allow typing immediately after the dialog opens
             DispatchQueue.main.async {
                 sourceFocused = true
             }
