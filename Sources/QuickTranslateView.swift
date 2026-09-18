@@ -156,7 +156,24 @@ struct QuickTranslateView: View {
             Text("快速翻译")
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
-            EngineModelMenu(store: store)
+
+            // Read-only model label — switch only in main panel / settings
+            HStack(spacing: 5) {
+                Image(systemName: store.provider.systemImage)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(store.provider.accentColor)
+                Text(store.currentEngineLabel)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(store.provider.accentColor.opacity(0.08))
+            )
+
             Button {
                 QuickPanelController.shared.hide()
             } label: {
@@ -167,7 +184,7 @@ struct QuickTranslateView: View {
                     .background(Circle().fill(GlassPalette.chipFill))
             }
             .buttonStyle(.plain)
-            .help("关闭（应用继续在菜单栏运行）")
+            .help("关闭")
         }
     }
 
