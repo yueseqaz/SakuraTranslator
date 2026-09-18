@@ -87,19 +87,25 @@ final class HotKeyManager {
     }
 }
 
+/// Borderless floating panel that can still become key (so TextEditor accepts typing).
+final class QuickKeyPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 /// Floating compact dialog — borderless, no traffic-light buttons.
 @MainActor
 final class QuickPanelController {
     static let shared = QuickPanelController()
 
-    private var panel: NSPanel?
+    private var panel: QuickKeyPanel?
 
     func showQuick() {
         NSApp.activate(ignoringOtherApps: true)
 
         if panel == nil {
             let size = NSSize(width: 360, height: 420)
-            let panel = NSPanel(
+            let panel = QuickKeyPanel(
                 contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.borderless, .fullSizeContentView],
                 backing: .buffered,
@@ -115,6 +121,7 @@ final class QuickPanelController {
             panel.backgroundColor = .clear
             panel.isOpaque = false
             panel.hasShadow = true
+            panel.acceptsMouseMovedEvents = true
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             panel.standardWindowButton(.closeButton)?.isHidden = true
             panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
@@ -124,13 +131,19 @@ final class QuickPanelController {
                 rootView: QuickTranslateView(store: .shared, prefs: AppStore.shared.preferences)
             )
             host.frame = NSRect(origin: .zero, size: size)
+            host.autoresizingMask = [.width, .height]
             panel.contentView = host
             self.panel = panel
         }
 
         if let panel {
             position(panel)
+            NSApp.activate(ignoringOtherApps: true)
             panel.makeKeyAndOrderFront(nil)
+            // Nudge first-responder into the text field
+            DispatchQueue.main.async {
+                panel.makeFirstResponder(panel.contentView)
+            }
         }
         AppStore.shared.surface = .hotkey
     }

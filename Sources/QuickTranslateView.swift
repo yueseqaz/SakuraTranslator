@@ -5,6 +5,7 @@ import AppKit
 struct QuickTranslateView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var prefs: Preferences
+    @FocusState private var sourceFocused: Bool
 
     var body: some View {
         ZStack {
@@ -47,6 +48,8 @@ struct QuickTranslateView: View {
                         ))
                         .font(.system(size: 13.5))
                         .scrollContentBackground(.hidden)
+                        .textEditorStyle(.plain)
+                        .focused($sourceFocused)
                         .frame(minHeight: 72, maxHeight: 96)
                         .padding(.horizontal, 6)
                         .onKeyPress(.return) {
@@ -134,6 +137,12 @@ struct QuickTranslateView: View {
         )
         .onExitCommand {
             QuickPanelController.shared.hide()
+        }
+        .onAppear {
+            // Allow typing immediately after the dialog opens
+            DispatchQueue.main.async {
+                sourceFocused = true
+            }
         }
     }
 
