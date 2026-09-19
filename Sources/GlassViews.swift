@@ -409,6 +409,25 @@ struct SettingsPageView: View {
                 }
                 .toggleStyle(.switch)
 
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("默认语气")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Picker("语气", selection: Binding(
+                        get: { store.tone },
+                        set: { store.tone = $0 }
+                    )) {
+                        ForEach(TranslationTone.allCases) { tone in
+                            Text(tone.label).tag(tone)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(store.tone.promptDirective)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 Divider()
                     .opacity(0.35)
 

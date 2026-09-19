@@ -9,6 +9,7 @@ final class Preferences: ObservableObject {
         static let language = "languageTarget"
         static let autoTranslate = "autoTranslate"
         static let autoCopy = "autoCopyResult"
+        static let tone = "translationTone"
     }
 
     @Published var provider: Provider {
@@ -27,6 +28,10 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(autoCopyResult, forKey: Keys.autoCopy) }
     }
 
+    @Published var tone: TranslationTone {
+        didSet { defaults.set(tone.rawValue, forKey: Keys.tone) }
+    }
+
     @Published var apiKeys: [Provider: String] = [:]
     @Published var models: [Provider: String] = [:]
     @Published var baseURLs: [Provider: String] = [:]
@@ -40,6 +45,8 @@ final class Preferences: ObservableObject {
 
         autoTranslate = defaults.object(forKey: Keys.autoTranslate) as? Bool ?? false
         autoCopyResult = defaults.object(forKey: Keys.autoCopy) as? Bool ?? true
+        let rawTone = defaults.string(forKey: Keys.tone) ?? TranslationTone.standard.rawValue
+        tone = TranslationTone(rawValue: rawTone) ?? .standard
 
         for p in Provider.allCases {
             apiKeys[p] = defaults.string(forKey: keyName(p)) ?? ""

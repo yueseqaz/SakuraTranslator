@@ -234,6 +234,42 @@ struct ContentView: View {
             .fixedSize()
             .help(store.languageTarget.label)
 
+            // Tone preset
+            Menu {
+                ForEach(TranslationTone.allCases) { tone in
+                    Button {
+                        store.tone = tone
+                    } label: {
+                        if store.tone == tone {
+                            Label(tone.label, systemImage: "checkmark")
+                        } else {
+                            Text(tone.label)
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: store.tone.systemImage)
+                        .font(.system(size: 9, weight: .semibold))
+                    Text(store.tone.shortLabel)
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(GlassPalette.chipFill)
+                        .overlay(
+                            Capsule().strokeBorder(GlassPalette.cardStroke, lineWidth: 1)
+                        )
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("语气：\(store.tone.label)")
+
             Button {
                 store.swapLanguages()
             } label: {

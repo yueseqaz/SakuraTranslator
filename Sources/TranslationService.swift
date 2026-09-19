@@ -40,6 +40,7 @@ final class TranslationService {
     func translate(
         text: String,
         language: LanguageTarget,
+        tone: TranslationTone = .standard,
         provider: Provider,
         apiKey: String,
         model: String,
@@ -70,6 +71,7 @@ final class TranslationService {
         let systemPrompt = """
         You are a professional translation engine.
         \(language.instruction)
+        Tone: \(tone.promptDirective)
         Rules:
         - Output ONLY the translation text.
         - Never add explanations, notes, or quotation marks unless they are part of the source.

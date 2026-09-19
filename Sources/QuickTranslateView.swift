@@ -157,7 +157,7 @@ struct QuickTranslateView: View {
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
 
-            // Read-only model label — switch only in main panel / settings
+            // Read-only model label + tone picker
             HStack(spacing: 5) {
                 Image(systemName: store.provider.systemImage)
                     .font(.system(size: 9, weight: .semibold))
@@ -173,6 +173,37 @@ struct QuickTranslateView: View {
                 Capsule()
                     .fill(store.provider.accentColor.opacity(0.08))
             )
+
+            Menu {
+                ForEach(TranslationTone.allCases) { tone in
+                    Button {
+                        store.tone = tone
+                    } label: {
+                        if store.tone == tone {
+                            Label(tone.label, systemImage: "checkmark")
+                        } else {
+                            Text(tone.label)
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: store.tone.systemImage)
+                        .font(.system(size: 8, weight: .semibold))
+                    Text(store.tone.shortLabel)
+                        .font(.system(size: 10.5, weight: .semibold))
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(GlassPalette.chipFill)
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
 
             Button {
                 QuickPanelController.shared.hide()

@@ -190,6 +190,56 @@ struct UsageRecord: Codable, Identifiable {
     }
 }
 
+enum TranslationTone: String, CaseIterable, Identifiable {
+    case standard
+    case formal
+    case colloquial
+    case technical
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .standard: return "标准"
+        case .formal: return "正式"
+        case .colloquial: return "口语"
+        case .technical: return "技术文档"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .standard: return "标准"
+        case .formal: return "正式"
+        case .colloquial: return "口语"
+        case .technical: return "技术"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .standard: return "text.alignleft"
+        case .formal: return "briefcase"
+        case .colloquial: return "bubble.left.and.bubble.right"
+        case .technical: return "hammer"
+        }
+    }
+
+    /// Extra instruction appended to the translation system prompt.
+    var promptDirective: String {
+        switch self {
+        case .standard:
+            return "Use a balanced, natural register."
+        case .formal:
+            return "Use a formal, professional register suitable for business, docs, or official communication. Prefer precise wording; avoid slang."
+        case .colloquial:
+            return "Use a natural, conversational register as native speakers would in chat or casual writing. Keep it lively but accurate."
+        case .technical:
+            return "Use a technical documentation register: precise, consistent terminology; preserve code, APIs, units, and identifiers; avoid marketing fluff."
+        }
+    }
+}
+
 enum MainTab: String, CaseIterable {
     case translate
     case history

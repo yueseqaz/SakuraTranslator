@@ -132,6 +132,14 @@ final class AppStore: ObservableObject {
         }
     }
 
+    var tone: TranslationTone {
+        get { preferences.tone }
+        set {
+            preferences.tone = newValue
+            objectWillChange.send()
+        }
+    }
+
     var canTranslate: Bool {
         !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && preferences.currentIsReady
@@ -284,6 +292,7 @@ final class AppStore: ObservableObject {
                 let result = try await TranslationService.shared.translate(
                     text: source,
                     language: language,
+                    tone: self.preferences.tone,
                     provider: provider,
                     apiKey: apiKey,
                     model: model,
@@ -569,6 +578,7 @@ final class AppStore: ObservableObject {
                 let result = try await TranslationService.shared.translate(
                     text: source,
                     language: language,
+                    tone: self.preferences.tone,
                     provider: provider,
                     apiKey: apiKey,
                     model: model,
