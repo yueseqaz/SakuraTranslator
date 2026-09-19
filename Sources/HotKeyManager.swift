@@ -71,10 +71,39 @@ final class HotKeyManager {
         }
     }
 
+    /// Best-effort read of selected text via Accessibility API.
+    static func frontmostSelectedText() -> String? {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedAppRef: CFTypeRef?
+        let appStatus = AXUIElementCopyAttributeValue(
+            systemWide,
+            kAXFocusedApplicationAttribute as CFString,
+            &focusedAppRef
+        )
+        guard appStatus == .success, let focusedAppRef else { return nil }
+        let appElement = focusedAppRef as! AXUIElement
+
+        var focusedUIRef: CFTypeRef?
+        let uiStatus = AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedUIRef
+        )
+        guard uiStatus == .success, let focusedUIRef else { return nil }
+        let uiElement = focusedUIRef as! AXUIElement
+
+        var selectedRef: CFTypeRef?
+        let selStatus = AXUIElementCopyAttributeValue(
+            uiElement,
+            kAXSelectedTextAttribute as CFString,
+            &selectedRef
+        )
+        guard selStatus == .success, let selectedRef else { return nil }
+        return selectedRef as? String
+    }
+
     static func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security") {
-            NSWorkspace.shared.open(url)
-        }
+        SelectionWatcher.openAccessibilitySettings()
     }
 }
 

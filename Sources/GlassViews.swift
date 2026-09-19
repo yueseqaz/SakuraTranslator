@@ -464,18 +464,32 @@ struct SettingsPageView: View {
                         Image(systemName: "keyboard")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.secondary)
-                        Text("快速翻译框")
+                        Text("快速翻译 / 划词")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    Text("双击 ⌘ — 打开快速翻译框；再双击 ⌘ 关闭")
+                    Text("双击 ⌘ — 打开空白快速翻译框；再双击 ⌘ 关闭")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("窗口无系统关闭/最小化按钮，框内右上角 ✕ 关闭。")
+                    Text("任意处选中文字（≥2 字）— 光标旁出现「翻译」按钮，点击后用快速翻译框展示结果")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("划词需「辅助功能」权限。当前：\(SelectionWatcher.shared.isTrusted ? "已授权" : "未授权")")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
+                    Button(SelectionWatcher.shared.isTrusted ? "重新检查权限" : "打开辅助功能设置") {
+                        if SelectionWatcher.shared.isTrusted {
+                            SelectionWatcher.shared.refreshSelectionBubble()
+                        } else {
+                            SelectionWatcher.openAccessibilitySettings()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11))
+                    .foregroundStyle(GlassPalette.accent)
                 }
             }
         }

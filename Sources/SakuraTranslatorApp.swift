@@ -4,6 +4,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         HotKeyManager.shared.registerIfNeeded()
+        SelectionWatcher.shared.startIfNeeded()
         NSApp.setActivationPolicy(.accessory)
     }
 }

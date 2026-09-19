@@ -192,7 +192,7 @@ final class AppStore: ObservableObject {
         isSwitchingTab = false
     }
 
-    /// Hotkey: blank quick dialog only — user pastes or types.
+    /// Blank quick dialog (double-tap ⌘).
     func openBlankQuickDialog() {
         surface = .hotkey
         quickSource = ""
@@ -200,6 +200,17 @@ final class AppStore: ObservableObject {
         quickError = nil
         quickBusy = false
         quickCopied = false
+    }
+
+    /// Selection bubble → fill quick dialog and translate immediately.
+    func ingestSelectionForQuickTranslate(_ text: String) {
+        surface = .hotkey
+        quickSource = text
+        quickResult = ""
+        quickError = nil
+        quickBusy = false
+        quickCopied = false
+        runQuickTranslate()
     }
 
     func quickPasteClipboard() {
