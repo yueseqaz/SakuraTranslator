@@ -82,6 +82,47 @@ enum Provider: String, CaseIterable, Identifiable {
     var isCustom: Bool { self == .custom }
 }
 
+enum DetectedLanguage: Equatable {
+    case chinese
+    case english
+    case japanese
+    case korean
+    case unknown
+}
+
+enum LanguageDetector {
+    /// Lightweight heuristic — enough to skip obvious same-language calls.
+    static func detect(_ text: String) -> DetectedLanguage {
+        var cjk = 0
+        var kana = 0
+        var hangul = 0
+        var latin = 0
+
+        for scalar in text.unicodeScalars {
+            let v = scalar.value
+            if (0x3040...0x30FF).contains(v) { kana += 1 }
+            else if (0xAC00...0xD7AF).contains(v) { hangul += 1 }
+            else if (0x4E00...0x9FFF).contains(v) || (0x3400...0x4DBF).contains(v) { cjk += 1 }
+            else if (0x61...0x7A).contains(v) || (0x41...0x5A).contains(v) { latin += 1 }
+        }
+
+        // Japanese uses kana + often CJK
+        if kana > 2 || (kana > 0 && kana >= cjk / 2) { return .japanese }
+        if hangul > 2 { return .korean }
+        if cjk > 0 && cjk >= latin { return .chinese }
+        if latin > 2 { return .english }
+        return .unknown
+    }
+
+    /// True when translating would be a no-op (source already in target language).
+    static func isSameLanguage(_ text: String, language: LanguageTarget) -> Bool {
+        let detected = detect(text)
+        let target = language.targetLanguage
+        guard let target, detected != .unknown else { return false }
+        return detected == target
+    }
+}
+
 enum LanguageTarget: String, CaseIterable, Identifiable {
     case autoToChinese = "auto_zh"
     case autoToEnglish = "auto_en"
@@ -136,6 +177,41 @@ enum LanguageTarget: String, CaseIterable, Identifiable {
         case .chineseToEnglish: return .englishToChinese
         case .englishToChinese: return .chineseToEnglish
         default: return nil
+        }
+    }
+
+    /// Target output language (nil = we don't know a fixed target for that pair).
+    var targetLanguage: DetectedLanguage? {
+        switch self {
+        case .autoToChinese, .englishToChinese:
+            return .chinese
+        case .autoToEnglish, .chineseToEnglish:
+            return .english
+        case .autoToJapanese:
+            return .japanese
+        case .autoToKorean:
+            return .korean
+        }
+    }
+
+    var targetLanguageName: String {
+        switch targetLanguage {
+        case .chinese: return "中文"
+        case .english: return "English"
+        case .japanese: return "日语"
+        case .korean: return "韩语"
+        case .unknown, .none: return "目标语言"
+        }
+    }
+
+    /// Drop pairs that are explicitly same → same (should not exist in UI).
+    static var usableCases: [LanguageTarget] {
+        allCases.filter { target in
+            switch target {
+            // No zh→zh / en→en etc. in catalog — keep auto and cross pairs only.
+            default:
+                return true
+            }
         }
     }
 }

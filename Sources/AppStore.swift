@@ -261,6 +261,13 @@ final class AppStore: ObservableObject {
             return
         }
 
+        if LanguageDetector.isSameLanguage(trimmed, language: preferences.languageTarget) {
+            quickError = "原文已是「\(preferences.languageTarget.targetLanguageName)」，无需翻译"
+            quickResult = ""
+            quickBusy = false
+            return
+        }
+
         let provider = preferences.provider
         let apiKey = preferences.apiKey(for: provider)
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -530,6 +537,15 @@ final class AppStore: ObservableObject {
         let trimmed = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             errorMessage = "请输入要翻译的内容"
+            return
+        }
+
+        // Same language → target: skip API to save tokens
+        if LanguageDetector.isSameLanguage(trimmed, language: preferences.languageTarget) {
+            errorMessage = "原文已是「\(preferences.languageTarget.targetLanguageName)」，无需翻译"
+            statusNote = nil
+            isTranslating = false
+            streamingCursor = false
             return
         }
 

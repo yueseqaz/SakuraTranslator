@@ -200,7 +200,7 @@ struct ContentView: View {
     private var languageBar: some View {
         HStack(spacing: 6) {
             Menu {
-                ForEach(LanguageTarget.allCases) { target in
+                ForEach(LanguageTarget.usableCases) { target in
                     Button {
                         store.languageTarget = target
                     } label: {
